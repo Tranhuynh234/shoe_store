@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import img_or_placeholder %}
+{% block title %}{{ post.title }} - TUẤN{% endblock %}
+{% macro fig(img, alt) %}
+<figure class="blog-fig">
+    <img src="{{ url_for('static', filename=img.path) }}" alt="{{ img.caption or alt }}" loading="lazy">
+    {% if img.caption %}<figcaption>{{ img.caption }}</figcaption>{% endif %}
+</figure>
+{% endmacro %}
+{% macro body(s) %}
+<div class="blog-text">
+    {%- for b in s.blocks -%}
+        {%- if b.type == 'h' -%}
+            <h{{ 1 + b.level }} class="blog-sub blog-sub--{{ b.level }}">{{ b.text }}</h{{ 1 + b.level }}>
+        {%- else -%}
+            {{ b.text|paragraphs }}
+        {%- endif -%}
+    {%- endfor -%}
+</div>
+{% endmacro %}
+{% block content %}
+<article class="container narrow page-block blog-wrap">
+    <p class="breadcrumb"><a href="{{ url_for('main.blog_list') }}">Blog</a></p>
+    <header class="blog-head">
+        <h1 class="blog-title">{{ post.title }}</h1>
+        <p class="muted">{{ post.published_at|dt('%d/%m/%Y') }}</p>
+    </header>
+    {% if post.thumbnail %}<div class="blog-cover">{{ img_or_placeholder(post.thumbnail, post.title, 'blog-cover-img') }}</div>{% endif %}
+    {% for s in sections %}
+    {% set first = s.images[0] if s.images else none %}
+    <section class="blog-sec">
+        {% if s.heading %}<h2 class="blog-sec-title">{{ s.heading }}</h2>{% endif %}
+        {% if first and first.pos == 'rộng' %}
+            {{ fig(first, s.heading or post.title) }}
+            {% if s.blocks %}{{ body(s) }}{% endif %}
+        {% elif first and s.blocks %}
+            <div class="blog-split blog-split--{{ 'left' if first.pos == 'trái' else 'right' }}">
+                {{ body(s) }}
+                {{ fig(first, s.heading or post.title) }}
+            </div>
+        {% else %}
+            {% if first %}{{ fig(first, s.heading or post.title) }}{% endif %}
+            {% if s.blocks %}{{ body(s) }}{% endif %}
+        {% endif %}
+        {% if s.images|length > 1 %}
+        <div class="blog-gallery">{% for im in s.images[1:] %}{{ fig(im, s.heading or post.title) }}{% endfor %}</div>
+        {% endif %}
+    </section>
+    {% if not loop.last %}<hr class="blog-divider">{% endif %}
+    {% endfor %}
+</article>
+{% endblock %}

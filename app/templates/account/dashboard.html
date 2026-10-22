@@ -1,0 +1,38 @@
+{% extends 'account/_layout.html' %}
+{% from 'partials/macros.html' import status_badge %}
+{% set active = 'Tổng quan' %}
+{% block title %}Dashboard - TUẤN{% endblock %}
+{% block account_content %}
+<div class="welcome-header">
+    <h2>Xin chào {{ current_user.full_name }}</h2>
+    <p>Here is your sustainable fashion dashboard at a glance.</p>
+</div>
+
+<div class="stats-grid">
+    <a class="stat-box" href="{{ url_for('account.orders') }}"><h3>{{ stats.total }}</h3><span>Tổng đơn hàng</span></a>
+    <a class="stat-box" href="{{ url_for('account.orders', status='PENDING') }}"><h3>{{ stats.processing }}</h3><span>Đang xử lý</span></a>
+    <a class="stat-box" href="{{ url_for('account.orders', status='SHIPPING') }}"><h3>{{ stats.shipping }}</h3><span>Đang giao</span></a>
+    <a class="stat-box" href="{{ url_for('account.orders', status='COMPLETED') }}"><h3>{{ stats.completed }}</h3><span>Hoàn thành</span></a>
+</div>
+
+<div class="recent-activity">
+    <h3>Đơn hàng gần đây</h3>
+    <div class="table-scroll">
+    <table>
+        <thead><tr><th>Mã đơn</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead>
+        <tbody>
+            {% for o in orders %}
+            <tr>
+                <td><a href="{{ url_for('account.order_detail', order_code=o.order_code) }}">{{ o.order_code }}</a></td>
+                <td>{{ o.created_at|dt }}</td>
+                <td>{{ o.total_amount|vnd }}</td>
+                <td>{{ status_badge(o) }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="4" class="empty-state">Chưa có dữ liệu hoạt động</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+{% endblock %}

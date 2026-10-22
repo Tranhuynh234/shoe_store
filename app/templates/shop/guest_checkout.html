@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Thanh toán - TUẤN{% endblock %}
+{% block content %}
+<div class="container narrow page-block">
+  <h1 class="section-title">THANH TOÁN</h1>
+  <p class="muted">Nhập thông tin nhận hàng để đặt hàng.</p>
+  <form id="guestCheckoutForm" class="form-card">
+    {{ csrf() }}
+    <label>Họ và tên người nhận *<input name="customer_name" required minlength="2" maxlength="120"></label>
+    <label>Số điện thoại *<input name="customer_phone" type="tel" required pattern="(0[35789][0-9]{8}|\+?84[35789][0-9]{8})" maxlength="15"></label>
+    <label>Địa chỉ nhận hàng *<input name="shipping_address" required minlength="8" maxlength="500" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"></label>
+    <label>Phương thức thanh toán
+      <select name="payment_method"><option value="COD">Thanh toán khi nhận hàng (COD)</option></select>
+    </label>
+    <label>Ghi chú đơn hàng<textarea name="order_note" maxlength="500" rows="3"></textarea></label>
+    <p id="checkoutError" class="text-error" role="alert"></p>
+    <button class="btn-dark" type="submit" id="submitGuestOrder">Xác nhận đặt hàng</button>
+  </form>
+</div>
+<script>
+document.getElementById('guestCheckoutForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const form = e.currentTarget, button = document.getElementById('submitGuestOrder');
+  const error = document.getElementById('checkoutError');
+  button.disabled = true; button.textContent = 'Đang xử lý...'; error.textContent = '';
+  try {
+    const data = Object.fromEntries(new FormData(form).entries());
+    const response = await fetch('{{ url_for("cart.guest_checkout") }}', {
+      method: 'POST', headers: {'Content-Type':'application/json', 'X-CSRFToken': '{{ csrf_token() }}'},
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Không thể đặt hàng. Vui lòng thử lại.');
+    window.location.href = result.redirect_url;
+  } catch (err) { error.textContent = err.message; button.disabled = false; button.textContent = 'Xác nhận đặt hàng'; }
+});
+</script>
+{% endblock %}

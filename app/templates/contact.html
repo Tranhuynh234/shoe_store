@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Liên hệ - TUẤN{% endblock %}
+{% block content %}
+<div class="container narrow page-block">
+    <h1 class="section-title">LIÊN HỆ</h1>
+    <form method="post" class="form-card">
+        {{ csrf() }}
+        <label>Họ và tên *<input type="text" name="full_name" value="{{ form.get('full_name', '') }}" required maxlength="120"></label>
+        <label>Số điện thoại<input type="tel" name="phone" value="{{ form.get('phone', '') }}" maxlength="20"></label>
+        <label>Tiêu đề *<input type="text" name="subject" value="{{ form.get('subject', '') }}" required maxlength="200"></label>
+        <label>Nội dung *<textarea name="message" rows="6" required minlength="10" maxlength="5000">{{ form.get('message', '') }}</textarea></label>
+        <button type="submit" class="btn-dark" data-loading-text="Đang gửi...">Gửi tin nhắn</button>
+    </form>
+</div>
+{% endblock %}

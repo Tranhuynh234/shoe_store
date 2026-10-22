@@ -1,0 +1,23 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% from 'partials/macros.html' import render_pagination %}
+{% block title %}Liên hệ{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>Tin nhắn liên hệ</h2></div>
+<div class="tabs"><a href="{{ url_for('admin.contacts') }}" class="{{ 'on' if not status }}">Tất cả</a>
+    {% for code, label in statuses.items() %}<a href="{{ url_for('admin.contacts', status=code) }}" class="{{ 'on' if status == code }}">{{ label }}</a>{% endfor %}</div>
+<div class="recent-activity">
+    {% for m in messages %}
+    <article class="contact-item">
+        <div class="row-between"><strong>{{ m.subject }}</strong><span class="status status-{{ m.status|lower }}">{{ m.status|contact_status }}</span></div>
+        <div class="prose">{{ m.message|paragraphs }}</div>
+        <form method="post" action="{{ url_for('admin.contact_status', msg_id=m.id) }}" class="inline-form">
+            {{ csrf() }}
+            <select name="status">{% for code, label in statuses.items() %}<option value="{{ code }}" {{ 'selected' if code == m.status }}>{{ label }}</option>{% endfor %}</select>
+            <button class="btn-light" data-no-loading>Cập nhật</button>
+        </form>
+    </article>
+    {% else %}<p class="empty-state">Chưa có tin nhắn</p>{% endfor %}
+    {{ render_pagination(pagination, 'admin.contacts', status=status or None) }}
+</div>
+{% endblock %}

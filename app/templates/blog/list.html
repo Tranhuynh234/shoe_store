@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import render_pagination, img_or_placeholder %}
+{% block title %}Blog - TUẤN{% endblock %}
+{% block content %}
+<div class="container page-block">
+    <h1 class="section-title">BLOG</h1>
+    {% if posts %}
+    <div class="shop-grid">
+        {% for p in posts %}
+        <a class="shop-card" href="{{ url_for('main.blog_detail', slug=p.slug) }}">
+            <div class="image-box shop-img-box">{{ img_or_placeholder(p.thumbnail, p.title) }}</div>
+            <div class="shop-card-body">
+                <small class="muted">{{ p.published_at|dt('%d/%m/%Y') }}</small>
+                <h3>{{ p.title }}</h3>
+                {% if p.summary %}<p class="muted">{{ p.summary }}</p>{% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {{ render_pagination(pagination, 'main.blog_list') }}
+    {% else %}
+    <div class="empty-state-box"><p>Chưa có bài viết nào được xuất bản.</p></div>
+    {% endif %}
+</div>
+{% endblock %}

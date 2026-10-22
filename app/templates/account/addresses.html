@@ -1,0 +1,42 @@
+{% extends 'account/_layout.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% set active = 'Địa chỉ' %}
+{% block title %}Địa chỉ nhận hàng - TUẤN{% endblock %}
+{% block account_content %}
+<div class="welcome-header"><h2>Địa chỉ nhận hàng</h2></div>
+
+<div class="recent-activity">
+    {% for a in current_user.addresses %}
+    <div class="address-row">
+        <div>
+            <strong>{{ a.recipient_name }}</strong> · {{ a.phone }}
+            {% if a.is_default %}<span class="status status-confirmed">Mặc định</span>{% endif %}<br>
+            <span class="muted">{{ a.full_text }}</span>
+        </div>
+        <div class="row-actions">
+            <a class="btn-light" href="{{ url_for('account.addresses', edit=a.id, next=next) }}">Sửa</a>
+            <form method="post" action="{{ url_for('account.delete_address', address_id=a.id) }}" data-confirm="Xóa địa chỉ này?">
+                {{ csrf() }}<button type="submit" class="btn-danger" data-no-loading>Xóa</button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <p class="empty-state">Bạn chưa có địa chỉ nào.</p>
+    {% endfor %}
+</div>
+
+<form method="post" action="{{ url_for('account.addresses') }}" class="form-card wide">
+    {{ csrf() }}
+    <h3>{{ 'Sửa địa chỉ' if edit else 'Thêm địa chỉ mới' }}</h3>
+    {% if edit %}<input type="hidden" name="address_id" value="{{ edit.id }}">{% endif %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <label>Tên người nhận *<input type="text" name="recipient_name" value="{{ edit.recipient_name if edit else current_user.full_name }}" required maxlength="120"></label>
+    <label>Số điện thoại *<input type="tel" name="phone" value="{{ edit.phone if edit else (current_user.phone or '') }}" required maxlength="20"></label>
+    <label>Tỉnh/Thành phố *<input type="text" name="province" value="{{ edit.province if edit else '' }}" required maxlength="100"></label>
+    <label>Quận/Huyện *<input type="text" name="district" value="{{ edit.district if edit else '' }}" required maxlength="100"></label>
+    <label>Phường/Xã *<input type="text" name="ward" value="{{ edit.ward if edit else '' }}" required maxlength="100"></label>
+    <label>Địa chỉ chi tiết (số nhà, tên đường) *<input type="text" name="address_detail" value="{{ edit.address_detail if edit else '' }}" required maxlength="255"></label>
+    <label class="check"><input type="checkbox" name="is_default" value="1" {{ 'checked' if edit and edit.is_default }}> Đặt làm địa chỉ mặc định</label>
+    <button type="submit" class="btn-dark" data-loading-text="Đang lưu...">Lưu địa chỉ</button>
+</form>
+{% endblock %}

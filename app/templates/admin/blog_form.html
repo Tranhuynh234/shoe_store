@@ -1,0 +1,247 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}{{ 'Sửa' if post.id else 'Viết' }} bài{% endblock %}
+{% block admin_content %}
+{% set f = request.form if request.method == 'POST' else {} %}
+<div class="welcome-header"><h2>{{ 'Sửa bài viết' if post.id else 'Viết bài mới' }}</h2></div>
+<form method="post" class="form-card wide" id="blogForm"
+      data-upload-url="{{ url_for('admin.blog_upload_image') }}" data-static="{{ url_for('static', filename='') }}">
+    {{ csrf() }}
+
+    <div class="be-block">
+        <h3 class="be-block-title"><span class="be-num">1</span> Thông tin chung</h3>
+        <label>Tiêu đề bài viết *<input name="title" value="{{ f.get('title', post.title or '') }}" required maxlength="200" placeholder="VD: Hành trình 20 năm làm giày thủ công"></label>
+        <label>Tóm tắt <small class="muted">hiện ở danh sách blog</small><textarea name="summary" rows="2" maxlength="500">{{ f.get('summary', post.summary or '') }}</textarea></label>
+        <div class="be-thumb">
+            <input type="hidden" name="thumbnail" id="thumbValue" value="{{ f.get('thumbnail', post.thumbnail or '') }}">
+            <div class="be-thumb-prev" id="thumbPrev"><span>Chưa có ảnh đại diện</span></div>
+            <div class="be-thumb-side">
+                <strong>Ảnh đại diện</strong>
+                <small class="muted">JPG, PNG hoặc WEBP, tối đa 5 MB</small>
+                <div class="be-row">
+                    <label class="btn-light be-file">Tải ảnh lên<input type="file" id="thumbFile" accept="image/png,image/jpeg,image/webp" hidden></label>
+                    <button type="button" class="btn-light" id="thumbClear" hidden>Bỏ ảnh</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="be-block">
+        <h3 class="be-block-title"><span class="be-num">2</span> Các mục của bài viết</h3>
+        <p class="muted be-hint">Mỗi mục gồm <b>tiêu đề mục</b> (cấp 1), <b>nội dung</b> và <b>ảnh</b>. Trong nội dung có thể chèn thêm <b>Tiêu đề 2</b>, <b>Tiêu đề 3</b> để chia nhỏ bài cho dễ đọc. Bấm “+ Thêm mục” để thêm, dùng mũi tên để đổi thứ tự.</p>
+        <div id="sections" class="be-sections"></div>
+        <button type="button" class="btn-light be-add" id="addSection">+ Thêm mục</button>
+        <textarea name="content" id="blogContent" hidden></textarea>
+    </div>
+
+    <div class="be-block">
+        <h3 class="be-block-title"><span class="be-num">3</span> Đăng bài</h3>
+        <label>Đường dẫn (slug) <small class="muted">để trống sẽ tự tạo từ tiêu đề</small><input name="slug" value="{{ f.get('slug', post.slug or '') }}" maxlength="200"></label>
+        {% set st = f.get('status', post.status) %}
+        <label>Trạng thái
+            <select name="status"><option value="DRAFT" {{ 'selected' if st != 'PUBLISHED' }}>Bản nháp</option><option value="PUBLISHED" {{ 'selected' if st == 'PUBLISHED' }}>Xuất bản</option></select></label>
+    </div>
+
+    <p class="be-error" id="beError" role="alert" hidden></p>
+    <button class="btn-dark" data-loading-text="Đang lưu...">Lưu bài viết</button>
+    <a class="btn-light" href="{{ url_for('admin.blog') }}">Quay lại</a>
+</form>
+<script type="application/json" id="initSections">{{ sections|tojson }}</script>
+<script>
+(function () {
+    var form = document.getElementById('blogForm');
+    var list = document.getElementById('sections');
+    var out = document.getElementById('blogContent');
+    var errBox = document.getElementById('beError');
+    var uploadUrl = form.dataset.uploadUrl;
+    var staticBase = form.dataset.static;
+    var csrfEl = form.querySelector('input[name=csrf_token]');
+    var POS = [['phải', 'Ảnh bên phải chữ'], ['trái', 'Ảnh bên trái chữ'], ['rộng', 'Ảnh rộng cả hàng']];
+
+    function el(tag, attrs, kids) {
+        var n = document.createElement(tag);
+        Object.keys(attrs || {}).forEach(function (k) {
+            if (k === 'text') n.textContent = attrs[k]; else if (k === 'class') n.className = attrs[k]; else n.setAttribute(k, attrs[k]);
+        });
+        (kids || []).forEach(function (c) { n.appendChild(c); });
+        return n;
+    }
+    function showError(msg) { errBox.textContent = msg || ''; errBox.hidden = !msg; }
+    function oneLine(s) { return (s || '').replace(/\|/g, '/').replace(/\[/g, '(').replace(/\]/g, ')').replace(/\s+/g, ' ').trim(); }
+
+    function upload(file) {
+        var fd = new FormData();
+        fd.append('image', file);
+        return fetch(uploadUrl, {method: 'POST', body: fd, headers: {'X-CSRFToken': csrfEl ? csrfEl.value : ''}, credentials: 'same-origin'})
+            .then(function (r) {
+                return r.json().catch(function () { return {error: r.status === 413 ? 'Ảnh vượt quá 5 MB.' : 'Không tải được ảnh, thử lại.'}; })
+                    .then(function (j) { if (!r.ok || j.error) throw new Error(j.error || 'Không tải được ảnh.'); return j; });
+            });
+    }
+    function staticUrl(path) { return staticBase + path; }
+
+    /* ---------- Ảnh đại diện ---------- */
+    var thumbValue = document.getElementById('thumbValue'), thumbPrev = document.getElementById('thumbPrev');
+    var thumbFile = document.getElementById('thumbFile'), thumbClear = document.getElementById('thumbClear');
+    function renderThumb() {
+        thumbPrev.innerHTML = '';
+        if (thumbValue.value) {
+            var im = el('img', {src: staticUrl(thumbValue.value), alt: 'Ảnh đại diện'});
+            im.onerror = function () { thumbPrev.innerHTML = '<span>Không hiển thị được ảnh</span>'; };
+            thumbPrev.appendChild(im);
+        } else thumbPrev.appendChild(el('span', {text: 'Chưa có ảnh đại diện'}));
+        thumbClear.hidden = !thumbValue.value;
+    }
+    thumbFile.addEventListener('change', function () {
+        var f = thumbFile.files[0]; if (!f) return;
+        showError(''); thumbPrev.classList.add('is-loading');
+        upload(f).then(function (j) { thumbValue.value = j.path; renderThumb(); })
+            .catch(function (e) { showError(e.message); })
+            .then(function () { thumbPrev.classList.remove('is-loading'); thumbFile.value = ''; });
+    });
+    thumbClear.addEventListener('click', function () { thumbValue.value = ''; renderThumb(); });
+    renderThumb();
+
+    /* ---------- Các mục ---------- */
+    function renumber() {
+        var cards = list.querySelectorAll('.be-sec');
+        cards.forEach(function (c, i) {
+            c.querySelector('.be-sec-num').textContent = 'Mục ' + (i + 1);
+            c.querySelector('[data-act=up]').disabled = i === 0;
+            c.querySelector('[data-act=down]').disabled = i === cards.length - 1;
+        });
+    }
+
+    function imageRow(card, data) {
+        var row = el('div', {class: 'be-img'});
+        row._path = data.path || '';
+        var prev = el('div', {class: 'be-img-prev'});
+        prev.appendChild(el('img', {src: staticUrl(row._path), alt: ''}));
+        var pos = el('select', {class: 'be-pos', 'aria-label': 'Vị trí ảnh'});
+        POS.forEach(function (p) { var o = el('option', {value: p[0], text: p[1]}); if ((data.pos || 'phải') === p[0]) o.selected = true; pos.appendChild(o); });
+        var cap = el('input', {class: 'be-cap', placeholder: 'Chú thích ảnh (không bắt buộc)', maxlength: '150', value: data.caption || ''});
+        var del = el('button', {type: 'button', class: 'btn-light be-img-del', text: 'Xóa ảnh'});
+        del.addEventListener('click', function () { row.remove(); refreshImgHints(card); sync(); });
+        var side = el('div', {class: 'be-img-side'}, [pos, cap, del]);
+        row.appendChild(prev); row.appendChild(side);
+        pos.addEventListener('change', sync); cap.addEventListener('input', sync);
+        return row;
+    }
+    function refreshImgHints(card) {
+        var rows = card.querySelectorAll('.be-img');
+        rows.forEach(function (r, i) {
+            r.querySelector('.be-pos').hidden = i > 0;   /* chỉ ảnh đầu cần chọn vị trí, ảnh sau xếp hàng nhỏ */
+            r.classList.toggle('is-extra', i > 0);
+        });
+        card.querySelector('.be-add-img').textContent = rows.length ? '+ Thêm ảnh nữa cho mục này' : '+ Thêm ảnh';
+    }
+
+    function addSection(data, focus) {
+        data = data || {};
+        var card = el('div', {class: 'be-sec'});
+        var head = el('div', {class: 'be-sec-head'});
+        head.appendChild(el('strong', {class: 'be-sec-num'}));
+        var tools = el('div', {class: 'be-sec-tools'});
+        [['up', '↑', 'Chuyển lên'], ['down', '↓', 'Chuyển xuống'], ['del', 'Xóa mục', 'Xóa mục này']].forEach(function (a) {
+            tools.appendChild(el('button', {type: 'button', class: 'btn-light be-tool', 'data-act': a[0], title: a[2], 'aria-label': a[2], text: a[1]}));
+        });
+        head.appendChild(tools);
+        var heading = el('input', {class: 'be-heading', placeholder: 'Tiêu đề mục (cấp 1), VD: Nguồn gốc thương hiệu', maxlength: '150', value: data.heading || ''});
+        var text = el('textarea', {class: 'be-text', rows: '8', placeholder: 'Nội dung mục này. Cách một dòng trống để sang đoạn mới.\nDùng nút “+ Tiêu đề 2 / 3” bên dưới để chèn tiêu đề nhỏ giữa bài.'});
+        text.value = data.text || (data.paragraphs || []).join('\n\n');
+
+        /* Chèn tiêu đề 2 / 3 tại vị trí con trỏ (chữ đang bôi đen sẽ thành tiêu đề) */
+        function insertHeading(prefix) {
+            var v = text.value, s = text.selectionStart, e = text.selectionEnd;
+            var before = v.slice(0, s), picked = v.slice(s, e), after = v.slice(e);
+            var lead = !before ? '' : /\n\n$/.test(before) ? '' : /\n$/.test(before) ? '\n' : '\n\n';
+            var tail = after && !/^\n/.test(after) ? '\n\n' : '';
+            var ins = lead + prefix + picked;
+            text.value = before + ins + tail + after;
+            var pos = before.length + ins.length;
+            text.focus(); text.setSelectionRange(pos, pos);
+            sync();
+        }
+        var fmt = el('div', {class: 'be-fmt'}, [
+            el('small', {class: 'muted', text: 'Chèn nhanh:'}),
+            el('button', {type: 'button', class: 'btn-light be-tool', 'data-ins': '### ', text: '+ Tiêu đề 2'}),
+            el('button', {type: 'button', class: 'btn-light be-tool', 'data-ins': '#### ', text: '+ Tiêu đề 3'})
+        ]);
+        fmt.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-ins]'); if (b) insertHeading(b.dataset.ins);
+        });
+
+        var imgs = el('div', {class: 'be-imgs'});
+        var file = el('input', {type: 'file', accept: 'image/png,image/jpeg,image/webp', hidden: ''});
+        var add = el('button', {type: 'button', class: 'btn-light be-add-img', text: '+ Thêm ảnh'});
+        var status = el('small', {class: 'muted be-img-status'});
+        add.addEventListener('click', function () { file.click(); });
+        file.addEventListener('change', function () {
+            var f = file.files[0]; if (!f) return;
+            showError(''); add.disabled = true; status.textContent = 'Đang tải ảnh...';
+            upload(f).then(function (j) { imgs.appendChild(imageRow(card, {path: j.path})); refreshImgHints(card); sync(); })
+                .catch(function (e) { showError(e.message); })
+                .then(function () { add.disabled = false; status.textContent = ''; file.value = ''; });
+        });
+        card.appendChild(head);
+        card.appendChild(el('label', {}, [el('span', {class: 'be-lbl', text: 'Tiêu đề mục'}), heading]));
+        card.appendChild(el('label', {}, [el('span', {class: 'be-lbl', text: 'Nội dung'}), text]));
+        card.appendChild(fmt);
+        card.appendChild(imgs);
+        card.appendChild(el('div', {class: 'be-row'}, [add, status, file]));
+        (data.images || []).forEach(function (im) { imgs.appendChild(imageRow(card, im)); });
+        refreshImgHints(card);
+
+        card.addEventListener('input', sync);
+        tools.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-act]'); if (!b) return;
+            var act = b.dataset.act;
+            if (act === 'up' && card.previousElementSibling) list.insertBefore(card, card.previousElementSibling);
+            if (act === 'down' && card.nextElementSibling) list.insertBefore(card.nextElementSibling, card);
+            if (act === 'del') {
+                var filled = heading.value.trim() || text.value.trim() || card.querySelector('.be-img');
+                if (filled && !confirm('Xóa mục này (kèm nội dung và ảnh trong mục)?')) return;
+                card.remove();
+            }
+            renumber(); sync();
+        });
+        list.appendChild(card);
+        renumber();
+        if (focus) { heading.focus(); card.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+    }
+
+    function build() {
+        var parts = [];
+        list.querySelectorAll('.be-sec').forEach(function (card) {
+            var b = [];
+            var h = oneLine(card.querySelector('.be-heading').value);
+            /* chỉ chặn đúng "##" (tránh vô tình tạo mục mới); "###" và "####" được giữ làm tiêu đề 2 / 3 */
+            var t = card.querySelector('.be-text').value.replace(/\r\n/g, '\n').split('\n').map(function (l) { return l.replace(/\s+$/, ''); }).join('\n').replace(/^\s*##(?!#)/gm, '#').trim();
+            if (h) b.push('## ' + h);
+            if (t) b.push(t);
+            card.querySelectorAll('.be-img').forEach(function (r) {
+                b.push('[ảnh: ' + r._path + ' | ' + r.querySelector('.be-pos').value + ' | ' + oneLine(r.querySelector('.be-cap').value) + ']');
+            });
+            if (b.length) parts.push(b.join('\n\n'));
+        });
+        return parts.join('\n\n');
+    }
+    function sync() { out.value = build(); }
+
+    document.getElementById('addSection').addEventListener('click', function () { addSection({}, true); });
+    form.addEventListener('submit', function (e) {
+        sync();
+        if (out.value.replace(/\[ảnh:[^\]]*\]/g, '').replace(/#+/g, '').trim().length < 10) {
+            e.preventDefault(); showError('Hãy nhập nội dung cho ít nhất một mục (tối thiểu 10 ký tự).');
+            document.querySelectorAll('[data-loading-text]').forEach(function (b) { b.disabled = false; });
+        }
+    });
+
+    var init = [];
+    try { init = JSON.parse(document.getElementById('initSections').textContent) || []; } catch (e) {}
+    if (!init.length) init = [{}];
+    init.forEach(function (s) { addSection(s, false); });
+    sync();
+})();
+</script>
+{% endblock %}

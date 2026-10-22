@@ -1,0 +1,48 @@
+{% set side_menu = [
+    {'title': 'Sản phẩm nam', 'slug': 'giay-nam', 'items': [
+        ('Giày Kodoss', 'giay-kodoss'),
+        ('Giày Tây Nam', 'giay-tay-nam'),
+        ('Giày Lười Nam', 'giay-luoi-nam'),
+        ('Giày Thể Thao', 'giay-the-thao-nam'),
+        ('Giày Hè', 'giay-he-nam'),
+        ('Sandal', 'sandal-nam'),
+        ('Dép', 'dep-nam')
+    ]},
+    {'title': 'Sản phẩm nữ', 'slug': 'giay-nu', 'items': [
+        ('Giày Magari', 'giay-magari'),
+        ('Giày Cao Gót', 'giay-cao-got'),
+        ('Giày Búp Bê', 'giay-bup-be'),
+        ('Giày Thể Thao', 'giay-the-thao-nu'),
+        ('Sandal', 'sandal-nu'),
+        ('Dép', 'dep-nu')
+    ]},
+    {'title': 'Phụ kiện', 'slug': 'phu-kien', 'items': [
+        ('Ví', 'vi'),
+        ('Thắt Lưng', 'that-lung')
+    ]}
+] %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+<div class="menu-overlay" id="menuOverlay"></div>
+
+<div class="side-menu" id="sideMenu">
+    <button class="close-menu" id="closeMenuBtn" aria-label="Đóng menu">X</button>
+    <ul class="side-menu-list">
+        <li><a href="{{ url_for('main.products') }}">Tất cả sản phẩm</a></li>
+
+        {% for m in side_menu %}
+        <li class="has-sub">
+            <a href="{{ url_for('main.products', category=m.slug) }}" data-sub-toggle aria-expanded="false">{{ m.title }}</a>
+            <div class="side-menu-sub">
+                <ul>
+                    {% for label, slug in m['items'] %}
+                    <li><a href="{{ url_for('main.products', category=slug) }}">{{ label }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </li>
+        {% endfor %}
+
+    </ul>
+</div>

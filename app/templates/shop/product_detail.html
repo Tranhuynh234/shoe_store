@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import csrf, img_or_placeholder, price, product_card %}
+{% block title %}{{ product.name }} - TUẤN{% endblock %}
+{% block content %}
+<div class="container page-block">
+    <p class="breadcrumb">
+        <a href="{{ url_for('main.products') }}">Sản phẩm</a> /
+        <a href="{{ url_for('main.products', category=product.category.slug) }}">{{ product.category.name }}</a>
+    </p>
+
+    <div class="product-container">
+        <div class="gallery">
+            <div class="product-image">
+                {% if product.images %}
+                <img id="galleryMain" src="{{ url_for('static', filename=product.images[0].image_url) }}" alt="{{ product.name }}">
+                {% else %}
+                {{ img_or_placeholder(None, product.name) }}
+                {% endif %}
+            </div>
+            {% if product.images|length > 1 %}
+            <div class="thumbs">
+                {% for img in product.images %}
+                <button type="button" class="thumb {{ 'active' if loop.first }}" data-gallery-thumb
+                    data-src="{{ url_for('static', filename=img.image_url) }}" aria-label="Ảnh {{ loop.index }}">
+                    <img src="{{ url_for('static', filename=img.image_url) }}" alt="" loading="lazy">
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="product-info">
+            <h1>{{ product.name|upper }}</h1>
+            <p class="muted">Mã sản phẩm: {{ product.product_code }}</p>
+            <div class="price-row">
+                <div class="price">{{ price(product) }}</div>
+                <div class="stats">
+                    {% if sold %}(Đã bán {{ sold }}){% endif %}
+                    {% if rating_count %}· ★ {{ rating_avg }} ({{ rating_count }} đánh giá){% endif %}
+                </div>
+            </div>
+
+            <div class="details">
+                <strong>THÔNG TIN SẢN PHẨM</strong><br>
+                • Loại sản phẩm: {{ product.category.name }}<br>
+                {% if product.brand %}• Thương hiệu: {{ product.brand.name }}<br>{% endif %}
+                {% if product.origin %}• Xuất xứ: {{ product.origin }}<br>{% endif %}
+                {% if product.material %}• Chất liệu: {{ product.material }}<br>{% endif %}
+                {% if product.description %}<div class="desc">{{ product.description|paragraphs }}</div>{% endif %}
+            </div>
+
+            {% if product.variants and product.in_stock %}
+            <form method="post" action="{{ url_for('cart.add') }}" class="buy-form">
+                {{ csrf() }}
+                {% set colors = product.variants|map(attribute='color')|select|unique|list %}
+                {% set sizes = product.variants|map(attribute='size')|unique|sort|list %}
+                {% set vd = [] %}
+                {% for v in product.variants %}{% set _ = vd.append({'id': v.id, 'size': v.size, 'color': v.color or '', 'stock': v.stock_quantity}) %}{% endfor %}
+                <input type="hidden" name="variant_id" value="">
+                {% if colors %}
+                <fieldset class="variant-picker">
+                    <legend>Màu sắc</legend>
+                    {% for c in colors %}
+                    <label class="variant">
+                        <input type="radio" name="color_pick" value="{{ c }}" required>
+                        <span>{{ c }}</span>
+                    </label>
+                    {% endfor %}
+                </fieldset>
+                {% endif %}
+                <fieldset class="variant-picker">
+                    <legend>Kích cỡ</legend>
+                    {% for sz in sizes %}
+                    <label class="variant">
+                        <input type="radio" name="size_pick" value="{{ sz }}" required>
+                        <span>{{ sz }}</span>
+                    </label>
+                    {% endfor %}
+                </fieldset>
+                <p id="stockNote" class="muted" aria-live="polite"></p>
+                <script type="application/json" id="variantData">{{ vd|tojson }}</script>
+                <label class="qty">Số lượng
+                    <input type="number" name="quantity" value="1" min="1" max="20" required>
+                </label>
+                <button type="submit" class="btn btn-buy" data-loading-text="Đang xử lý...">Thêm vào giỏ hàng</button>
+                <button type="submit" name="buy_now" value="1" class="btn btn-swap" data-loading-text="Đang xử lý...">Mua ngay</button>
+            </form>
+            <script>
+(function () {
+    var form = document.querySelector('.buy-form');
+    if (!form) return;
+    var variants = JSON.parse(document.getElementById('variantData').textContent);
+    var hidden = form.querySelector('input[name="variant_id"]');
+    var colorInputs = Array.prototype.slice.call(form.querySelectorAll('input[name="color_pick"]'));
+    var sizeInputs = Array.prototype.slice.call(form.querySelectorAll('input[name="size_pick"]'));
+    var qty = form.querySelector('input[name="quantity"]');
+    var note = document.getElementById('stockNote');
+
+    function find(color, size) {
+        return variants.filter(function (v) { return v.color === color && v.size === size; })[0] || null;
+    }
+    function chosen(list) {
+        var c = list.filter(function (i) { return i.checked; })[0];
+        return c ? c.value : null;
+    }
+    function toggle(input, ok) {
+        input.disabled = !ok;
+        input.parentElement.classList.toggle('disabled', !ok);
+        if (!ok && input.checked) input.checked = false;
+    }
+    function refresh() {
+        var hasColors = colorInputs.length > 0;
+        var color = hasColors ? chosen(colorInputs) : '';
+        colorInputs.forEach(function (i) {
+            toggle(i, variants.some(function (v) { return v.color === i.value && v.stock > 0; }));
+        });
+        sizeInputs.forEach(function (i) {
+            var ok = color === null
+                ? variants.some(function (v) { return v.size === i.value && v.stock > 0; })
+                : !!(find(color, i.value) && find(color, i.value).stock > 0);
+            toggle(i, ok);
+        });
+        var size = chosen(sizeInputs);
+        var v = (color !== null && size !== null) ? find(color, size) : null;
+        hidden.value = v && v.stock > 0 ? v.id : '';
+        if (v && v.stock > 0) {
+            qty.max = Math.min(20, v.stock);
+            if (+qty.value > +qty.max) qty.value = qty.max;
+            note.textContent = v.stock <= 5 ? 'Chỉ còn ' + v.stock + ' sản phẩm' : 'Còn hàng';
+        } else {
+            qty.max = 20;
+            note.textContent = hasColors && color === null ? 'Chọn màu sắc, sau đó chọn kích cỡ.' : '';
+        }
+    }
+    form.addEventListener('change', refresh);
+    // Chọn sẵn màu đầu tiên còn hàng để các size hiển thị đúng ngay
+    var first = colorInputs.filter(function (i) { return variants.some(function (v) { return v.color === i.value && v.stock > 0; }); })[0];
+    if (first) first.checked = true;
+    refresh();
+})();
+            </script>
+            {% else %}
+            <p class="out-of-stock">Sản phẩm hiện đã hết hàng hoặc chưa mở bán.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <section class="reviews">
+        <h2 class="sub-title">ĐÁNH GIÁ SẢN PHẨM</h2>
+        {% for r in reviews %}
+        <article class="review">
+            <strong>{{ r.user.full_name }}</strong> <span class="stars">{{ '★' * r.rating }}{{ '☆' * (5 - r.rating) }}</span>
+            <small class="muted">{{ r.created_at|dt('%d/%m/%Y') }}</small>
+            {% if r.comment %}<p>{{ r.comment }}</p>{% endif %}
+        </article>
+        {% else %}
+        <p class="muted">Chưa có đánh giá nào.</p>
+        {% endfor %}
+
+        {% if can_review %}
+        <form method="post" action="{{ url_for('main.submit_review', slug=product.slug) }}" class="form-card">
+            {{ csrf() }}
+            <h3>Viết đánh giá của bạn</h3>
+            <label>Điểm
+                <select name="rating" required>{% for n in [5,4,3,2,1] %}<option value="{{ n }}">{{ n }} sao</option>{% endfor %}</select>
+            </label>
+            <label>Nhận xét<textarea name="comment" rows="3" maxlength="2000"></textarea></label>
+            <button type="submit" class="btn-dark">Gửi đánh giá</button>
+        </form>
+        {% endif %}
+    </section>
+
+    {% include 'partials/recent.html' %}
+
+    {% if related %}
+    <section class="related">
+        <h2 class="sub-title">SẢN PHẨM TƯƠNG TỰ</h2>
+        <div class="rel-carousel" data-rel-carousel>
+            <button type="button" class="rel-btn rel-prev" aria-label="Xem sản phẩm trước" hidden>&#10094;</button>
+            <div class="rel-viewport">
+                <div class="rel-track">
+                    {% for p in related %}<div class="rel-slide">{{ product_card(p) }}</div>{% endfor %}
+                </div>
+            </div>
+            <button type="button" class="rel-btn rel-next" aria-label="Xem sản phẩm tiếp theo" hidden>&#10095;</button>
+        </div>
+    </section>
+    <script>
+    (function () {
+        var root = document.querySelector('[data-rel-carousel]');
+        if (!root) return;
+        var viewport = root.querySelector('.rel-viewport');
+        var slides = Array.prototype.slice.call(root.querySelectorAll('.rel-slide'));
+        var prev = root.querySelector('.rel-prev'), next = root.querySelector('.rel-next');
+
+        function step() { return slides.length > 1 ? slides[1].offsetLeft - slides[0].offsetLeft : slides[0].offsetWidth; }
+        function perView() { return Math.max(1, Math.round((viewport.clientWidth - 24) / step())); }
+        function update() {
+            var max = viewport.scrollWidth - viewport.clientWidth - 2;
+            var need = slides.length > perView();
+            prev.hidden = next.hidden = !need;
+            prev.disabled = viewport.scrollLeft <= 2;
+            next.disabled = viewport.scrollLeft >= max;
+        }
+        function go(dir) { viewport.scrollBy({ left: dir * perView() * step(), behavior: 'smooth' }); }
+        prev.addEventListener('click', function () { go(-1); });
+        next.addEventListener('click', function () { go(1); });
+        viewport.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+
+        // Kéo chuột để lướt (điện thoại dùng vuốt cảm ứng có sẵn)
+        var down = false, startX = 0, startLeft = 0, moved = 0;
+        viewport.addEventListener('pointerdown', function (e) {
+            if (e.pointerType !== 'mouse' || e.button !== 0) return;
+            down = true; moved = 0; startX = e.clientX; startLeft = viewport.scrollLeft;
+        });
+        window.addEventListener('pointermove', function (e) {
+            if (!down) return;
+            var dx = e.clientX - startX;
+            moved = Math.max(moved, Math.abs(dx));
+            if (moved > 5) viewport.classList.add('dragging');
+            viewport.scrollLeft = startLeft - dx;
+        });
+        window.addEventListener('pointerup', function () {
+            if (!down) return;
+            down = false;
+            if (viewport.classList.contains('dragging')) {
+                var target = Math.round(viewport.scrollLeft / step()) * step();
+                viewport.classList.remove('dragging');
+                viewport.scrollTo({ left: target, behavior: 'smooth' });
+            }
+        });
+        viewport.addEventListener('dragstart', function (e) { e.preventDefault(); });
+        update();
+    })();
+    </script>
+    {% endif %}
+</div>
+{% endblock %}

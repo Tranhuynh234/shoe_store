@@ -1,0 +1,14 @@
+{% from 'partials/macros.html' import product_card %}
+{% if recent %}
+<section class="recent-viewed">
+    <div class="row-between">
+        <h2 class="sub-title">SẢN PHẨM ĐÃ XEM GẦN ĐÂY</h2>
+        <form method="post" action="{{ url_for('main.clear_recent') }}" data-confirm="Xóa lịch sử đã xem?" class="inline-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
+            <button type="submit" class="btn-light" data-no-loading>Xóa lịch sử</button>
+        </form>
+    </div>
+    <div class="shop-grid">{% for p in recent %}{{ product_card(p) }}{% endfor %}</div>
+</section>
+{% endif %}

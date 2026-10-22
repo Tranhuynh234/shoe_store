@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import img_or_placeholder %}
+
+{% macro slideshow(images, label) %}
+<div class="slideshow-container" data-slideshow>
+    <div class="image-box slideshow">
+        {% for name in images %}
+        <img src="{{ url_for('static', filename='images/' ~ name) }}" alt="{{ label }} {{ loop.index }}"
+            class="shoe-img slide{{ ' active' if loop.first }}">
+        {% endfor %}
+        <div class="shadow-blur"></div>
+    </div>
+    <div class="slideshow-dots" role="tablist" aria-label="Chọn ảnh {{ label }}">
+        {% for name in images %}
+        <button type="button" class="dot{{ ' active' if loop.first }}" data-index="{{ loop.index0 }}"
+            aria-label="Ảnh {{ loop.index }}"></button>
+        {% endfor %}
+    </div>
+</div>
+{% endmacro %}
+
+{% macro brand_slides(paths, label) %}
+<div class="image-box slideshow" data-slideshow>
+    {% for p in paths %}
+    <img src="{{ url_for('static', filename=p) }}" alt="{{ label }} {{ loop.index }}"
+        class="shoe-img slide{{ ' active' if loop.first }}">
+    {% endfor %}
+    <div class="shadow-blur"></div>
+</div>
+{% endmacro %}
+
+{% block extra_head %}
+<style>
+    /* Slideshow*/
+    .slideshow {
+        position: relative;
+    }
+
+    .slideshow img.slide {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        z-index: 2;
+        transition: opacity 0.9s ease;
+    }
+
+    .slideshow img.slide.active {
+        opacity: 1;
+        z-index: 3;
+    }
+
+    .slideshow-container {
+        width: 100%;
+    }
+
+    .slideshow-container .image-box {
+        margin-bottom: 14px;
+    }
+
+    .slideshow-dots {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .slideshow-dots .dot {
+        width: 9px;
+        height: 9px;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: #c4c2bd;
+        cursor: pointer;
+        transition: background 0.3s, transform 0.3s;
+    }
+
+    .slideshow-dots .dot:hover {
+        background: #888;
+    }
+
+    .slideshow-dots .dot.active {
+        background: var(--text-dark);
+        transform: scale(1.3);
+    }
+
+    .slideshow-dots .dot:focus-visible {
+        outline: 2px solid var(--accent-red);
+        outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .slideshow img.slide {
+            transition: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block hero %}
+<!-- PHẦN ĐẦU TRANG  -->
+<section class="hero-section">
+    <video class="hero-bg" id="heroVideo" autoplay muted loop playsinline preload="auto"
+        poster="{{ url_for('static', filename='images/background.jpg') }}">
+        <source src="{{ url_for('static', filename='images/videos/Banner.mp4') }}" type="video/mp4">
+    </video>
+
+    {% set header_class = 'header-hero' %}
+    {% include 'partials/header.html' %}
+
+    <div class="hero-content">
+        <a href="{{ url_for('main.products') }}" class="btn-primary">KHÁM PHÁ NGAY</a>
+    </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <section class="brand-section">
+        <h2 class="section-title">THƯƠNG HIỆU</h2>
+
+        {% set brand_images = {
+        'tuan': ['images/brand/brandT1.jpg', 'images/brand/brandT2.jpg', 'images/brand/brandT3.jpg'],
+        'kodoss': ['images/brand/brandK1.jpg', 'images/brand/brandK2.jpg', 'images/brand/brandK3.jpg'],
+        'nauts': ["images/brand/brandN1.jpg", "images/brand/brandN2.jpg", "images/brand/brandN3.jpg"],
+        'magari': ['images/brand/brandM1.jpg', 'images/brand/brandM2.jpg', 'images/brand/brandM3.jpg']
+        } %}
+
+        <div class="brand-grid">
+            {% for b in brands %}
+            {% set imgs = brand_images.get(b.slug) %}
+            <a class="product-card" href="{{ url_for('main.products', brand=b.slug) }}">
+                {% if imgs %}
+                {{ brand_slides(imgs, b.name) }}
+                {% else %}
+                <div class="image-box">
+                    {{ img_or_placeholder(b.cover_image, b.name) }}
+                    <div class="shadow-blur"></div>
+                </div>
+                {% endif %}
+                {% if b.logo %}
+                <img src="{{ url_for('static', filename=b.logo) }}" alt="{{ b.name }}" class="brand-logo-img">
+                {% else %}
+                <h3 class="brand-name-text">{{ b.name }}</h3>
+                {% endif %}
+            </a>
+            {% else %}
+            <p class="empty-note">Chưa có thương hiệu nào. Hãy chạy lệnh seed hoặc thêm trong trang quản trị.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="categories">
+        <!-- Row 1: CLASSIC -->
+        <div class="category-row">
+            <div class="category-text">
+                <span class="cat-brand">HUE SHOES<small>SINCE 1978</small></span>
+                <h3>CỔ ĐIỂN</h3>
+                <span class="cat-sub">GIÀY TÂY CÔNG SỞ</span>
+                <p>Giày Tây luôn là người bạn đồng hành bền bỉ của các quý ông công sở qua bao tháng ngày</p>
+            </div>
+            <div class="category-image-wrapper">
+                {{ slideshow(['classic/tuan.jpg', 'classic/tuan1.jpg', 'classic/tuan2.jpg', 'classic/tuan3.jpg',
+                'classic/tuan4.jpg'], 'Classic') }}
+            </div>
+        </div>
+
+        <!-- Row 2: MODERN -->
+        <div class="category-row reverse">
+            <div class="category-text">
+                <span class="cat-brand">HUE SHOES<small>SINCE 1978</small></span>
+                <h3>HIỆN ĐẠI</h3>
+                <span class="cat-sub">OXFORD HIỆN ĐẠI</span>
+                <p>Thoải mái, tự tin sải bước cùng giày tây Oxford - Nâng tầm phong thái và đẳng cấp quý ông</p>
+            </div>
+            <div class="category-image-wrapper">
+                {{ slideshow(['morden/kodoss.jpg', 'morden/kodoss1.jpg', 'morden/kodoss2.jpg', 'morden/kodoss3.jpg',
+                'morden/kodoss4.jpg'], 'Modern') }}
+            </div>
+        </div>
+
+        <!-- Row 3: SPORT -->
+        <div class="category-row">
+            <div class="category-text">
+                <span class="cat-brand">HUE SHOES<small>SINCE 1978</small></span>
+                <h3>THỂ THAO</h3>
+                <span class="cat-sub">NĂNG ĐỘNG MỖI NGÀY</span>
+                <p>Năng động mỗi ngày, sẵn sàng chinh phục mọi thử thách</p>
+            </div>
+            <div class="category-image-wrapper">
+                {{ slideshow(['sport/naut.jpg', 'sport/naut1.jpg', 'sport/naut2.jpg', 'sport/naut3.jpg',
+                'sport/naut4.jpg'], 'Sport') }}
+            </div>
+        </div>
+    </section>
+
+    <!-- DỊCH VỤ -->
+    {% set services = [
+    {'title': 'BẢN ĐỒ', 'map': '282A Hòa Bình, phường Phú Thạnh, thành phố Hồ Chí Minh', 'url':
+    'https://www.google.com/maps/search/?api=1&query=' ~ ('282A Hòa Bình, phường Phú Thạnh, thành phố Hồ Chí
+    Minh'|urlencode)},
+    {'title': 'CHĂM SÓC & BẢO HÀNH', 'media': 'videos/baohanh.mp4', 'url': url_for('main.contact')},
+    {'title': 'CỬA HÀNG', 'media': 'videos/cuahang.mp4', 'url': url_for('main.contact')}
+    ] %}
+    <section class="services" aria-labelledby="servicesTitle">
+        <h2 class="services-title" id="servicesTitle">DỊCH VỤ</h2>
+        <div class="services-grid">
+            {% for sv in services %}
+            {% set media = sv.media or sv.videos or sv.img or '' %}
+            {% set is_video = (media|lower).endswith(('.mp4', '.webm', '.mov')) %}
+            <div class="service-card">
+                <div class="service-media">
+                    <div class="service-media-link" {% if not sv.map %} aria-hidden="true" {% endif %}>
+                        {% if sv.map %}
+                        <iframe class="service-map" title="Bản đồ cửa hàng"
+                            src="https://www.google.com/maps?q={{ sv.map|urlencode }}&hl=vi&z=16&output=embed"
+                            loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        {% elif is_video %}
+                        <video src="{{ url_for('static', filename='images/' ~ media) }}" autoplay muted loop playsinline
+                            preload="metadata" data-service-video></video>
+                        {% else %}
+                        <img src="{{ url_for('static', filename='images/' ~ media) }}" alt="" loading="lazy"
+                            onerror="this.style.visibility='hidden'">
+                        {% endif %}
+                    </div>
+                    {% if is_video %}
+                    <button type="button" class="service-toggle" data-service-toggle aria-label="Tạm dừng video"
+                        aria-pressed="false"><span aria-hidden="true">II</span></button>
+                    {% endif %}
+                </div>
+                <h3 class="service-name">{{ sv.title }}</h3>
+                {% if sv.desc and sv.map %}<a class="service-desc service-desc-link" href="{{ sv.url }}" target="_blank"
+                    rel="noopener">{{ sv.desc }}</a>
+                {% elif sv.desc %}<p class="service-desc">{{ sv.desc }}</p>{% endif %}
+                {% if sv.link %}<a class="service-link" href="{{ sv.url }}" {% if sv.map %} target="_blank"
+                    rel="noopener" {% endif %}>{{ sv.link }}</a>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Video banner + video dịch vụ
+    (function () {
+        function tryPlay(v) {
+            var p = v.play();
+            if (p && p.catch) p.catch(function () { /* bị chặn: giữ poster/khung hình đầu */ });
+        }
+        document.querySelectorAll('#heroVideo, [data-service-video]').forEach(function (v) {
+            v.muted = true;
+            tryPlay(v);
+            v.addEventListener('loadeddata', function () { if (v.paused && !v.dataset.userPaused) tryPlay(v); });
+        });
+        document.querySelectorAll('[data-service-toggle]').forEach(function (btn) {
+            var v = btn.parentElement.querySelector('video');
+            if (!v) return;
+            btn.addEventListener('click', function () {
+                var pausing = !v.paused;
+                if (pausing) { v.pause(); v.dataset.userPaused = '1'; } else { delete v.dataset.userPaused; tryPlay(v); }
+                btn.setAttribute('aria-pressed', pausing ? 'true' : 'false');
+                btn.setAttribute('aria-label', pausing ? 'Phát video' : 'Tạm dừng video');
+                btn.firstElementChild.textContent = pausing ? '▶' : 'II';
+            });
+        });
+    })();
+</script>
+<script>
+    (function () {
+        var INTERVAL = 2000;
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        document.querySelectorAll('[data-slideshow]').forEach(function (box, boxIndex) {
+            var slides = box.querySelectorAll('.slide');
+            var dots = box.querySelectorAll('.dot');
+            if (slides.length < 2) return;
+            var current = 0, timer = null;
+
+            function show(i) {
+                current = (i + slides.length) % slides.length;
+                slides.forEach(function (s, k) { s.classList.toggle('active', k === current); });
+                dots.forEach(function (d, k) { d.classList.toggle('active', k === current); });
+            }
+            function start() {
+                if (reduceMotion || timer) return;
+                timer = setInterval(function () { show(current + 1); }, INTERVAL);
+            }
+            function stop() { clearInterval(timer); timer = null; }
+
+            dots.forEach(function (d) {
+                d.addEventListener('click', function () {
+                    show(parseInt(d.dataset.index, 10));
+                    stop(); start();
+                });
+            });
+            box.addEventListener('mouseenter', stop);
+            box.addEventListener('mouseleave', start);
+            document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+
+            setTimeout(start, boxIndex * 500);
+        });
+    })();
+</script>
+{% endblock %}

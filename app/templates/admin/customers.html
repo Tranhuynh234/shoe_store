@@ -1,0 +1,14 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf, render_pagination %}
+{% block title %}Khách hàng{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>Khách hàng</h2></div>
+<form method="get" class="filter-bar"><input type="search" name="q" value="{{ q }}" placeholder="Tìm tên hoặc số điện thoại"><button class="btn-dark">Tìm</button></form>
+<div class="recent-activity"><div class="table-scroll"><table>
+<thead><tr><th>Khách hàng</th><th>Số điện thoại</th><th>Đơn hàng</th><th>Ngày tạo</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+<tbody>{% for u in customers %}
+<tr><td>{{ u.full_name }}</td><td>{{ u.phone }}</td><td>{{ order_counts.get(u.id, 0) }}</td><td>{{ u.created_at|dt('%d/%m/%Y') }}</td><td>{{ 'Hoạt động' if u.is_active else 'Đã khóa' }}</td>
+<td><form method="post" action="{{ url_for('admin.customer_toggle', user_id=u.id) }}">{{ csrf() }}<button class="{{ 'btn-danger' if u.is_active else 'btn-light' }}" data-no-loading>{{ 'Khóa' if u.is_active else 'Mở khóa' }}</button></form></td></tr>
+{% else %}<tr><td colspan="6" class="empty-state">Chưa có khách hàng</td></tr>{% endfor %}</tbody></table></div>
+{{ render_pagination(pagination, 'admin.customers', q=q or None) }}</div>
+{% endblock %}

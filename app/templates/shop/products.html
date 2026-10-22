@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import product_card, render_pagination %}
+{% block title %}{% if current_category %}{{ current_category.name }}{% elif current_brand %}{{ current_brand.name }}{% else %}Sản phẩm{% endif %} - TUẤN{% endblock %}
+{% block content %}
+<div class="container page-block">
+    <h1 class="section-title">
+        {% if current_category %}{{ current_category.name|upper }}{% elif current_brand %}{{ current_brand.name|upper }}{% else %}SẢN PHẨM{% endif %}
+    </h1>
+
+    <div class="shop-toolbar">
+    <nav class="cat-nav" aria-label="Danh mục sản phẩm">
+        {% for g in category_tree %}
+        {% set active = category and (category == g['slug'] or category in g['items']|map(attribute=1)|list) %}
+        <div class="cat-item{{ ' active' if active }}">
+            <button type="button" class="cat-toggle" aria-haspopup="true" aria-expanded="false">{{ g['title'] }}</button>
+            <div class="cat-menu">
+                <a href="{{ url_for('main.products', category=g['slug'], q=q or None, brand=brand, sort=(sort if sort != 'newest' else None)) }}"
+                   class="{{ 'on' if category == g['slug'] }}">Tất cả {{ g['title']|lower }}</a>
+                {% for label, slug in g['items'] %}
+                <a href="{{ url_for('main.products', category=slug, q=q or None, brand=brand, sort=(sort if sort != 'newest' else None)) }}"
+                   class="{{ 'on' if category == slug }}">{{ label }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </nav>
+
+    <form method="get" class="filter-bar">
+        {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+        {% if brand %}<input type="hidden" name="brand" value="{{ brand }}">{% endif %}
+        <input type="search" name="q" value="{{ q }}" placeholder="Tìm theo tên hoặc mã sản phẩm..." maxlength="100" aria-label="Tìm kiếm">
+        <select name="sort" aria-label="Sắp xếp" onchange="this.form.submit()">
+            <option value="newest" {{ 'selected' if sort == 'newest' }}>Mới nhất</option>
+            <option value="price_asc" {{ 'selected' if sort == 'price_asc' }}>Giá: thấp đến cao</option>
+            <option value="price_desc" {{ 'selected' if sort == 'price_desc' }}>Giá: cao đến thấp</option>
+        </select>
+
+        <button type="submit" class="btn-dark" data-no-loading>Lọc</button>
+        {% if q or category or brand or min_price is not none or max_price is not none or sort != 'newest' %}<a class="btn-light" href="{{ url_for('main.products') }}">Xóa lọc</a>{% endif %}
+    </form>
+    </div>
+
+    {% if products %}
+    <div class="shop-grid">
+        {% for p in products %}{{ product_card(p) }}{% endfor %}
+    </div>
+    {{ render_pagination(pagination, 'main.products', q=q or None, category=category, brand=brand,
+        sort=(sort if sort != 'newest' else None), min_price=min_price, max_price=max_price) }}
+    {% else %}
+    <div class="empty-state-box">
+        <p>Không tìm thấy sản phẩm phù hợp.</p>
+        <a class="btn-dark" href="{{ url_for('main.products') }}">Xem tất cả sản phẩm</a>
+    </div>
+    {% endif %}
+
+    {% include 'partials/recent.html' %}
+</div>
+<script>
+// Mở/đóng menu thả xuống của Sản phẩm nam / nữ / Phụ kiện (hover trên máy tính, bấm trên điện thoại).
+(function () {
+    var items = document.querySelectorAll('.cat-item');
+    function closeAll(except) {
+        items.forEach(function (i) {
+            if (i !== except) { i.classList.remove('open'); i.querySelector('.cat-toggle').setAttribute('aria-expanded', 'false'); }
+        });
+    }
+    items.forEach(function (item) {
+        var btn = item.querySelector('.cat-toggle');
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = !item.classList.contains('open');
+            closeAll(item);
+            item.classList.toggle('open', open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    });
+    document.addEventListener('click', function () { closeAll(null); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(null); });
+})();
+</script>
+{% endblock %}

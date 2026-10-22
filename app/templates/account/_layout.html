@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="dash">
+    <aside class="sidebar">
+        <h1>{{ current_user.full_name.split(' ')[-1] }}</h1>
+        <p>Belief in the difference</p>
+
+        {% set nav = [
+            ('main.home', 'Trang chủ', {}),
+            ('account.dashboard', 'Tổng quan', {}),
+            ('cart.view_cart', 'Giỏ hàng', {}),
+            ('account.orders', 'Đơn mua', {}),
+            ('account.orders', 'Đang giao', {'status': 'SHIPPING'}),
+            ('main.products', 'Sản phẩm', {}),
+            ('account.orders', 'Lịch sử mua hàng', {'status': 'COMPLETED'}),
+        ] %}
+        {% for endpoint, label, args in nav %}
+        <a href="{{ url_for(endpoint, **args) }}" class="menu-item {{ 'active' if active == label }}">{{ label }}</a>
+        {% endfor %}
+
+        <div class="divider"></div>
+
+        <a href="{{ url_for('account.profile') }}" class="menu-item {{ 'active' if active == 'Cài đặt' }}">Cài đặt</a>
+        <a href="{{ url_for('account.addresses') }}" class="menu-item {{ 'active' if active == 'Địa chỉ' }}">Địa chỉ nhận hàng</a>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="menu-item linklike" data-no-loading>Đăng xuất</button>
+        </form>
+    </aside>
+    <div class="main-content">
+        {% block account_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

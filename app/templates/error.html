@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} - TUẤN{% endblock %}
+{% block content %}
+<div class="container narrow center-text page-block">
+    <p class="error-code">{{ code }}</p>
+    <h1 class="page-title">{{ title }}</h1>
+    <p class="muted">{{ message }}</p>
+    <p><a class="btn-dark" href="{{ url_for('main.home') }}">Về trang chủ</a></p>
+</div>
+{% endblock %}

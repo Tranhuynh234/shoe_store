@@ -1,0 +1,76 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}{{ 'Sửa' if product.id else 'Thêm' }} sản phẩm{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>{{ 'Sửa sản phẩm' if product.id else 'Thêm sản phẩm' }}</h2></div>
+<form method="post" class="form-card wide">
+    {{ csrf() }}
+    <label>Tên sản phẩm *<input name="name" value="{{ product.name or '' }}" required maxlength="200"></label>
+    <label>Mã sản phẩm *<input name="product_code" value="{{ product.product_code or '' }}" required maxlength="50"></label>
+    <label>Đường dẫn (slug) <small class="muted">để trống sẽ tự tạo từ tên</small><input name="slug" value="{{ product.slug or '' }}" maxlength="200"></label>
+    <label>Danh mục *
+        <select name="category_id" required>
+            <option value="">-- Chọn --</option>
+            {% for c in categories %}
+            <option value="{{ c.id }}" {{ 'selected' if c.id == product.category_id }}>{{ c.name }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Thương hiệu
+        <select name="brand_id"><option value="">-- Không --</option>
+        {% for b in brands %}<option value="{{ b.id }}" {{ 'selected' if b.id == product.brand_id }}>{{ b.name }}</option>{% endfor %}</select></label>
+    <label>Giá (₫) *<input type="number" name="price" min="0" step="1" value="{{ product.price|int if product.price is not none else '' }}" required></label>
+    <label>Giá khuyến mãi (₫)<input type="number" name="sale_price" min="0" step="1" value="{{ product.sale_price|int if product.sale_price is not none else '' }}"></label>
+    <label>Chất liệu<input name="material" value="{{ product.material or '' }}" maxlength="255"></label>
+    <label>Xuất xứ<input name="origin" value="{{ product.origin or '' }}" maxlength="100"></label>
+    <label>Mô tả<textarea name="description" rows="5">{{ product.description or '' }}</textarea></label>
+    <label class="check"><input type="checkbox" name="is_active" value="1" {{ 'checked' if product.is_active }}> Hiển thị trên website</label>
+    <button type="submit" class="btn-dark" data-loading-text="Đang lưu...">Lưu sản phẩm</button>
+    <a class="btn-light" href="{{ url_for('admin.products') }}">Quay lại</a>
+</form>
+
+{% if product.id %}
+<div class="recent-activity">
+    <h3>Kích cỡ, màu sắc &amp; tồn kho</h3>
+    <div class="table-scroll"><table>
+        <thead><tr><th>Size</th><th>Màu</th><th>Tồn kho</th><th></th></tr></thead>
+        <tbody>
+        {% for v in product.variants %}
+        <tr><td>{{ v.size }}</td><td>{{ v.color or '—' }}</td>
+            <td><form method="post" action="{{ url_for('admin.variant_update', variant_id=v.id) }}" class="inline-form">
+                {{ csrf() }}<input type="number" name="stock_quantity" min="0" value="{{ v.stock_quantity }}" class="narrow-input"> <button class="btn-light" data-no-loading>Lưu</button></form></td>
+            <td><form method="post" action="{{ url_for('admin.variant_delete', variant_id=v.id) }}" data-confirm="Xóa biến thể này?">{{ csrf() }}<button class="btn-danger" data-no-loading>Xóa</button></form></td></tr>
+        {% else %}<tr><td colspan="4" class="empty-state">Chưa có biến thể. Sản phẩm cần ít nhất một kích cỡ để bán.</td></tr>{% endfor %}
+        </tbody></table></div>
+    <form method="post" action="{{ url_for('admin.variant_add', product_id=product.id) }}" class="inline-grid">
+        {{ csrf() }}
+        <input name="size" placeholder="Size *" required maxlength="20">
+        <input name="color" placeholder="Màu (tuỳ chọn)" maxlength="50">
+        <input type="number" name="stock_quantity" min="0" placeholder="Tồn kho *" required>
+        <button class="btn-dark" data-no-loading>Thêm biến thể</button>
+    </form>
+</div>
+
+<div class="recent-activity">
+    <h3>Hình ảnh sản phẩm</h3>
+    <div class="admin-images">
+        {% for img in product.images %}
+        <div class="admin-img">
+            <img src="{{ url_for('static', filename=img.image_url) }}" alt="">
+            {% if img.is_primary %}<span class="status status-confirmed">Ảnh chính</span>{% endif %}
+            <div class="row-actions">
+                {% if not img.is_primary %}
+                <form method="post" action="{{ url_for('admin.image_primary', image_id=img.id) }}">{{ csrf() }}<button class="btn-light" data-no-loading>Đặt làm chính</button></form>{% endif %}
+                <form method="post" action="{{ url_for('admin.image_delete', image_id=img.id) }}" data-confirm="Xóa ảnh này?">{{ csrf() }}<button class="btn-danger" data-no-loading>Xóa</button></form>
+            </div>
+        </div>
+        {% else %}<p class="empty-state">Chưa có ảnh. Website sẽ hiển thị ảnh thay thế.</p>{% endfor %}
+    </div>
+    <form method="post" action="{{ url_for('admin.image_upload', product_id=product.id) }}" enctype="multipart/form-data" class="inline-grid">
+        {{ csrf() }}
+        <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+        <button class="btn-dark" data-loading-text="Đang tải lên...">Tải ảnh lên (≤ 5MB)</button>
+    </form>
+</div>
+{% endif %}
+{% endblock %}

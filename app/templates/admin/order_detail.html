@@ -1,0 +1,45 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Đơn {{ order.order_code }}{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>Đơn {{ order.order_code }}</h2>
+<div class="recent-activity"><h3>Sản phẩm</h3>
+    <div class="table-scroll"><table>
+        <thead><tr><th>Sản phẩm</th><th>Size/Màu</th><th>Đơn giá</th><th>SL</th><th>Thành tiền</th></tr></thead>
+        <tbody>{% for i in order.items %}<tr><td>{{ i.product_name }}<br><small class="muted">{{ i.product_code }}</small></td>
+            <td>{{ i.size }}{% if i.color %} / {{ i.color }}{% endif %}</td><td>{{ i.unit_price|vnd }}</td><td>{{ i.quantity }}</td><td>{{ i.subtotal|vnd }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <dl class="totals"><dt>Tạm tính</dt><dd>{{ order.subtotal|vnd }}</dd><dt>Phí giao hàng</dt><dd>{{ order.shipping_fee|vnd }}</dd>
+        <dt>Giảm giá</dt><dd>{{ order.discount_amount|vnd }}</dd><dt class="grand">Tổng cộng</dt><dd class="grand">{{ order.total_amount|vnd }}</dd></dl>
+</div>
+<div class="recent-activity"><h3>Giao hàng</h3>
+    <p><strong>{{ order.ship_name }}</strong> · {{ order.ship_phone }}<br>{{ order.ship_address }}</p>
+    {% if order.customer_note %}<p class="muted">Ghi chú của khách: {{ order.customer_note }}</p>{% endif %}</div>
+
+<div class="recent-activity"><h3>Trạng thái đơn hàng: <span class="status status-{{ order.order_status|lower }}">{{ order.status_label }}</span></h3>
+    {% if next_statuses %}
+    <form method="post" action="{{ url_for('admin.order_status', order_code=order.order_code) }}" class="inline-grid" data-confirm="Xác nhận cập nhật trạng thái đơn hàng?">
+        {{ csrf() }}
+        <select name="status">{% for s in next_statuses %}<option value="{{ s }}">{{ ORDER_STATUS_LABELS[s] }}</option>{% endfor %}</select>
+        <button class="btn-dark" data-loading-text="Đang cập nhật...">Cập nhật</button>
+    </form>
+    {% else %}<p class="muted">Đơn ở trạng thái cuối, không thể thay đổi.</p>{% endif %}
+</div>
+
+<div class="recent-activity"><h3>Thanh toán: {{ order.payment_method_label }} — <strong>{{ order.payment_status_label }}</strong></h3>
+    {% for p in order.payments %}<p class="muted">Giao dịch #{{ p.id }}: {{ p.payment_status|payment_status }} · {{ p.amount|vnd }}
+        {% if p.transaction_code %}· Mã: {{ p.transaction_code }}{% endif %}{% if p.paid_at %}· {{ p.paid_at|dt }}{% endif %}
+        {% if p.verification_note %}<br>Xác minh: {{ p.verification_note }}{% endif %}</p>{% endfor %}
+    {% if order.order_status != 'CANCELLED' %}
+    <form method="post" action="{{ url_for('admin.order_payment', order_code=order.order_code) }}" class="form-card wide" data-confirm="Xác nhận cập nhật trạng thái thanh toán?">
+        {{ csrf() }}
+        <label>Trạng thái thanh toán mới
+            <select name="payment_status">{% for code, label in payment_labels.items() %}<option value="{{ code }}" {{ 'selected' if code == order.payment_status }}>{{ label }}</option>{% endfor %}</select></label>
+        <label>Ghi chú xác minh * <small class="muted">bắt buộc khi đánh dấu Đã thanh toán / Hoàn tiền (vd: NV giao hàng đã thu đủ tiền)</small>
+            <input name="verification_note" maxlength="500"></label>
+        <label>Mã giao dịch (nếu có từ nhà cung cấp)<input name="transaction_code" maxlength="100"></label>
+        <button class="btn-dark" data-loading-text="Đang lưu...">Cập nhật thanh toán</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

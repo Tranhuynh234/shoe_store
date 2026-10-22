@@ -1,0 +1,49 @@
+{% extends 'account/_layout.html' %}
+{% from 'partials/macros.html' import csrf, status_badge %}
+{% set active = 'Đơn mua' %}
+{% block title %}Đơn {{ order.order_code }} - TUẤN{% endblock %}
+{% block account_content %}
+<div class="welcome-header">
+    <h2>Đơn hàng {{ order.order_code }}</h2>
+    <p>Đặt lúc {{ order.created_at|dt }} · {{ status_badge(order) }}</p>
+</div>
+
+<div class="recent-activity">
+    <h3>Sản phẩm</h3>
+    <div class="table-scroll">
+    <table>
+        <thead><tr><th>Sản phẩm</th><th>Size/Màu</th><th>Đơn giá</th><th>SL</th><th>Thành tiền</th></tr></thead>
+        <tbody>
+            {% for i in order.items %}
+            <tr>
+                <td>{% if i.product and i.product.is_active %}<a href="{{ url_for('main.product_detail', slug=i.product.slug) }}">{{ i.product_name }}</a>{% else %}{{ i.product_name }}{% endif %}
+                    <br><small class="muted">{{ i.product_code }}</small></td>
+                <td>{{ i.size }}{% if i.color %} / {{ i.color }}{% endif %}</td>
+                <td>{{ i.unit_price|vnd }}</td><td>{{ i.quantity }}</td><td>{{ i.subtotal|vnd }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <dl class="totals">
+        <dt>Tạm tính</dt><dd>{{ order.subtotal|vnd }}</dd>
+        <dt>Phí giao hàng</dt><dd>{{ order.shipping_fee|vnd }}</dd>
+        {% if order.discount_amount %}<dt>Giảm giá</dt><dd>-{{ order.discount_amount|vnd }}</dd>{% endif %}
+        <dt class="grand">Tổng cộng</dt><dd class="grand">{{ order.total_amount|vnd }}</dd>
+    </dl>
+</div>
+
+<div class="recent-activity">
+    <h3>Giao hàng &amp; thanh toán</h3>
+    <p><strong>{{ order.ship_name }}</strong> · {{ order.ship_phone }}<br>{{ order.ship_address }}</p>
+    <p>{{ order.payment_method_label }} — <strong>{{ order.payment_status_label }}</strong></p>
+    {% if order.customer_note %}<p class="muted">Ghi chú: {{ order.customer_note }}</p>{% endif %}
+    {% if order.order_status == 'PENDING' %}
+    <form method="post" action="{{ url_for('account.cancel_order', order_code=order.order_code) }}"
+        data-confirm="Bạn chắc chắn muốn hủy đơn hàng {{ order.order_code }}?">
+        {{ csrf() }}
+        <button type="submit" class="btn-danger" data-loading-text="Đang hủy...">Hủy đơn hàng</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}

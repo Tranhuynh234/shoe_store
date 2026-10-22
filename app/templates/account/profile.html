@@ -1,0 +1,21 @@
+{% extends 'account/_layout.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% set active = 'Cài đặt' %}
+{% block title %}Thông tin cá nhân - TUẤN{% endblock %}
+{% block account_content %}
+<div class="welcome-header"><h2>Thông tin cá nhân</h2></div>
+<form method="post" action="{{ url_for('account.profile') }}" class="form-card wide">
+    {{ csrf() }}
+    <label>Họ và tên<input type="text" name="full_name" value="{{ current_user.full_name }}" required maxlength="120"></label>
+    <label>Số điện thoại<input type="tel" name="phone" value="{{ current_user.phone or '' }}" maxlength="20" required></label>
+    <button type="submit" class="btn-dark" data-loading-text="Đang lưu...">Lưu thay đổi</button>
+</form>
+<form method="post" action="{{ url_for('account.password') }}" class="form-card wide">
+    {{ csrf() }}
+    <h3>Đổi mật khẩu</h3>
+    <label>Mật khẩu hiện tại<input type="password" name="current_password" required autocomplete="current-password"></label>
+    <label>Mật khẩu mới<input type="password" name="new_password" required minlength="8" autocomplete="new-password"></label>
+    <label>Xác nhận mật khẩu mới<input type="password" name="confirm_password" required minlength="8" autocomplete="new-password"></label>
+    <button type="submit" class="btn-dark" data-loading-text="Đang đổi...">Đổi mật khẩu</button>
+</form>
+{% endblock %}

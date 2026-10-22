@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import csrf, img_or_placeholder %}
+{% block title %}Giỏ hàng - TUẤN{% endblock %}
+{% block content %}
+<div class="container page-block">
+    <h1 class="section-title">GIỎ HÀNG</h1>
+    {% if summary.lines %}
+    <div class="cart-layout">
+        <div class="cart-lines">
+            {% for l in summary.lines %}
+            <div class="cart-line">
+                <a class="cart-thumb" href="{{ url_for('main.product_detail', slug=l.product.slug) }}">
+                    {{ img_or_placeholder(l.product.primary_image.image_url if l.product.primary_image else None, l.product.name, 'cart-img') }}
+                </a>
+                <div class="cart-info">
+                    <a href="{{ url_for('main.product_detail', slug=l.product.slug) }}"><strong>{{ l.product.name }}</strong></a>
+                    <small class="muted">{{ l.product.product_code }} · {{ l.variant.label }}</small>
+                    <span>{{ l.unit_price|vnd }}</span>
+                    {% if l.issue %}<span class="text-error">{{ l.issue }}</span>{% endif %}
+                </div>
+                <form method="post" action="{{ url_for('cart.update') }}" class="cart-qty">
+                    {{ csrf() }}
+                    <input type="hidden" name="item_id" value="{{ l.item.id }}">
+                    <input type="number" name="quantity" value="{{ l.item.quantity }}" min="1" max="20" aria-label="Số lượng">
+                    <button type="submit" class="btn-light" data-no-loading>Cập nhật</button>
+                </form>
+                <div class="cart-total">{{ l.line_total|vnd }}</div>
+                <form method="post" action="{{ url_for('cart.remove') }}" data-confirm="Xóa sản phẩm này khỏi giỏ hàng?">
+                    {{ csrf() }}
+                    <input type="hidden" name="item_id" value="{{ l.item.id }}">
+                    <button type="submit" class="icon-btn" aria-label="Xóa" data-no-loading>✕</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        <aside class="summary-card">
+            <h3>Tóm tắt đơn hàng</h3>
+            <dl>
+                <dt>Tạm tính</dt><dd>{{ summary.subtotal|vnd }}</dd>
+                <dt>Phí giao hàng</dt><dd>{{ summary.shipping_fee|vnd if summary.shipping_fee else 'Miễn phí' }}</dd>
+                <dt class="grand">Tổng cộng</dt><dd class="grand">{{ summary.total|vnd }}</dd>
+            </dl>
+            {% if summary.problems %}
+            <p class="text-error">Vui lòng điều chỉnh các sản phẩm có cảnh báo trước khi thanh toán.</p>
+            {% else %}
+            <a class="btn-dark block" href="{{ url_for('cart.checkout') }}">Tiến hành đặt hàng</a>
+            {% endif %}
+            <a class="btn-light block" href="{{ url_for('main.products') }}">Tiếp tục mua sắm</a>
+        </aside>
+    </div>
+    {% else %}
+    <div class="empty-state-box">
+        <p>Giỏ hàng của bạn đang trống.</p>
+        <a class="btn-dark" href="{{ url_for('main.products') }}">Khám phá sản phẩm</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

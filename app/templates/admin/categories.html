@@ -1,0 +1,25 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Danh mục{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>Danh mục</h2></div>
+<div class="recent-activity"><div class="table-scroll"><table>
+    <thead><tr><th>Tên</th><th>Slug</th><th>Sản phẩm</th><th>Hiển thị</th><th></th></tr></thead>
+    <tbody>
+    {% for c in items %}
+    <tr><td>{{ c.name }}</td><td>{{ c.slug }}</td><td>{{ counts.get(c.id, 0) }}</td><td>{{ 'Có' if c.is_active else 'Ẩn' }}</td>
+        <td class="row-actions"><a class="btn-light" href="{{ url_for('admin.categories', edit=c.id) }}">Sửa</a>
+            <form method="post" action="{{ url_for('admin.category_delete', obj_id=c.id) }}" data-confirm="Xóa danh mục «{{ c.name }}»?">{{ csrf() }}<button class="btn-danger" data-no-loading>Xóa</button></form></td></tr>
+    {% else %}<tr><td colspan="5" class="empty-state">Chưa có danh mục</td></tr>{% endfor %}
+    </tbody></table></div></div>
+<form method="post" action="{{ url_for('admin.category_save') }}" class="form-card wide">
+    {{ csrf() }}<h3>{{ 'Sửa danh mục' if edit else 'Thêm danh mục' }}</h3>
+    {% if edit %}<input type="hidden" name="id" value="{{ edit.id }}">{% endif %}
+    <label>Tên *<input name="name" value="{{ edit.name if edit else '' }}" required maxlength="100"></label>
+    <label>Slug<input name="slug" value="{{ edit.slug if edit else '' }}" maxlength="120"></label>
+    <label>Mô tả<textarea name="description" rows="3">{{ edit.description or '' if edit else '' }}</textarea></label>
+    <label class="check"><input type="checkbox" name="is_active" value="1" {{ 'checked' if (not edit) or edit.is_active }}> Hiển thị</label>
+    <button class="btn-dark" data-loading-text="Đang lưu...">Lưu</button>
+    {% if edit %}<a class="btn-light" href="{{ url_for('admin.categories') }}">Hủy</a>{% endif %}
+</form>
+{% endblock %}

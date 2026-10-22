@@ -1,0 +1,27 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Thương hiệu{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>Thương hiệu</h2></div>
+<div class="recent-activity"><div class="table-scroll"><table>
+    <thead><tr><th>Logo</th><th>Tên</th><th>Slug</th><th>Sản phẩm</th><th></th></tr></thead>
+    <tbody>
+    {% for b in items %}
+    <tr><td>{% if b.logo %}<img class="logo-thumb" src="{{ url_for('static', filename=b.logo) }}" alt="">{% else %}—{% endif %}</td>
+        <td>{{ b.name }}</td><td>{{ b.slug }}</td><td>{{ counts.get(b.id, 0) }}</td>
+        <td class="row-actions"><a class="btn-light" href="{{ url_for('admin.brands', edit=b.id) }}">Sửa</a>
+            <form method="post" action="{{ url_for('admin.brand_delete', obj_id=b.id) }}" data-confirm="Xóa thương hiệu «{{ b.name }}»?">{{ csrf() }}<button class="btn-danger" data-no-loading>Xóa</button></form></td></tr>
+    {% else %}<tr><td colspan="5" class="empty-state">Chưa có thương hiệu</td></tr>{% endfor %}
+    </tbody></table></div></div>
+<form method="post" action="{{ url_for('admin.brand_save') }}" class="form-card wide">
+    {{ csrf() }}<h3>{{ 'Sửa thương hiệu' if edit else 'Thêm thương hiệu' }}</h3>
+    {% if edit %}<input type="hidden" name="id" value="{{ edit.id }}">{% endif %}
+    <label>Tên *<input name="name" value="{{ edit.name if edit else '' }}" required maxlength="100"></label>
+    <label>Slug<input name="slug" value="{{ edit.slug if edit else '' }}" maxlength="120"></label>
+    <label>Logo <small class="muted">đường dẫn trong static, vd: images/logo-tuan.png</small><input name="logo" value="{{ edit.logo or '' if edit else '' }}" maxlength="255"></label>
+    <label>Ảnh đại diện trang chủ <small class="muted">vd: images/tuan.jpg</small><input name="cover_image" value="{{ edit.cover_image or '' if edit else '' }}" maxlength="255"></label>
+    <label>Mô tả<textarea name="description" rows="3">{{ edit.description or '' if edit else '' }}</textarea></label>
+    <button class="btn-dark" data-loading-text="Đang lưu...">Lưu</button>
+    {% if edit %}<a class="btn-light" href="{{ url_for('admin.brands') }}">Hủy</a>{% endif %}
+</form>
+{% endblock %}

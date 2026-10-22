@@ -1,0 +1,25 @@
+{% extends 'admin/base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Tổng quan{% endblock %}
+{% block admin_content %}
+<div class="welcome-header"><h2>Tổng quan</h2></div>
+<div class="stats-grid wrap">
+    <a class="stat-box" href="{{ url_for('admin.orders') }}"><h3>{{ stats.orders }}</h3><span>Tổng đơn hàng</span></a>
+    <a class="stat-box" href="{{ url_for('admin.orders', status='PENDING') }}"><h3>{{ stats.pending_orders }}</h3><span>Chờ xác nhận</span></a>
+    <a class="stat-box" href="{{ url_for('admin.products') }}"><h3>{{ stats.products }}</h3><span>Sản phẩm</span></a>
+    <a class="stat-box" href="{{ url_for('admin.customers') }}"><h3>{{ stats.customers }}</h3><span>Khách hàng</span></a>
+</div>
+<div class="recent-activity">
+    <h3>Đơn hàng mới nhất</h3>
+    <div class="table-scroll"><table>
+        <thead><tr><th>Mã đơn</th><th>Người nhận</th><th>Tổng</th><th>Trạng thái</th><th>Ngày</th></tr></thead>
+        <tbody>
+        {% for o in orders %}
+        <tr><td><a href="{{ url_for('admin.order_detail', order_code=o.order_code) }}">{{ o.order_code }}</a></td>
+            <td>{{ o.ship_name }}</td><td>{{ o.total_amount|vnd }}</td>
+            <td><span class="status status-{{ o.order_status|lower }}">{{ o.order_status|order_status }}</span></td>
+            <td>{{ o.created_at|dt }}</td></tr>
+        {% else %}<tr><td colspan="5" class="empty-state">Chưa có đơn hàng</td></tr>{% endfor %}
+        </tbody></table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Quản trị{% endblock %} - Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body class="admin-body">
+{% from 'partials/macros.html' import csrf %}
+<div class="dash admin-dash">
+    <aside class="sidebar">
+        <h1>Admin</h1>
+        <p>Belief in the difference</p>
+        {% set nav = [('admin.dashboard','Tổng quan','dashboard'),('admin.products','Sản phẩm','product'),
+            ('admin.categories','Danh mục','categor'),('admin.brands','Thương hiệu','brand'),
+            ('admin.orders','Đơn hàng','order'),('admin.customers','Khách hàng','customer'),
+            ('admin.blog','Blog','blog'),('admin.contacts','Liên hệ','contact')] %}
+        {% for endpoint, label, stem in nav %}
+        <a href="{{ url_for(endpoint) }}" class="menu-item {{ 'active' if (request.endpoint or '').startswith('admin.' ~ stem) }}">{{ label }}</a>
+        {% endfor %}
+        <div class="divider"></div>
+        <a href="{{ url_for('main.home') }}" class="menu-item">Xem website</a>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+            {{ csrf() }}<button type="submit" class="menu-item linklike" data-no-loading>Đăng xuất</button>
+        </form>
+    </aside>
+    <div class="main-content">
+        {% include 'partials/flash.html' %}
+        {% block admin_content %}{% endblock %}
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

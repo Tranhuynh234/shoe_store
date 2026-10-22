@@ -1,0 +1,60 @@
+{% macro csrf() %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endmacro %}
+
+{% macro img_or_placeholder(path, alt, cls='shoe-img') %}
+{% if path %}<img src="{{ url_for('static', filename=path) }}" alt="{{ alt }}" class="{{ cls }}" loading="lazy">
+{% else %}<div class="img-placeholder" role="img" aria-label="Chưa có ảnh sản phẩm"><span>Chưa có ảnh</span></div>{% endif %}
+{% endmacro %}
+
+{% macro price(product) %}
+{% if product.on_sale %}<span class="price-now">{{ product.current_price|vnd }}</span> <s class="price-old">{{ product.price|vnd }}</s>
+<span class="badge-sale">-{{ product.discount_percent }}%</span>
+{% else %}<span class="price-now">{{ product.price|vnd }}</span>{% endif %}
+{% endmacro %}
+
+{% macro product_card(p) %}
+{% set imgs = p.images %}
+<a class="shop-card" href="{{ url_for('main.product_detail', slug=p.slug) }}" data-card{% if imgs|length > 1 %} data-multi{% endif %}>
+    <div class="image-box shop-img-box card-media">
+        {% if imgs %}
+        <img src="{{ url_for('static', filename=imgs[0].image_url) }}" alt="{{ p.name }}" class="shoe-img card-main" loading="lazy"
+            data-default="{{ url_for('static', filename=imgs[0].image_url) }}"
+            data-hover="{{ url_for('static', filename=imgs[0].image_url) }}">
+        {% else %}
+        {{ img_or_placeholder(None, p.name) }}
+        {% endif %}
+        {% if not p.in_stock %}<span class="badge-out">Hết hàng</span>{% endif %}
+    </div>
+    {% if imgs|length > 1 %}
+    <div class="thumb-strip-wrap" aria-hidden="true">
+        <div class="thumb-strip">
+            {% for im in imgs[:5] %}
+            <span class="card-thumb{{ ' active' if loop.first }}" data-src="{{ url_for('static', filename=im.image_url) }}">
+                <img src="{{ url_for('static', filename=im.image_url) }}" alt="" loading="lazy">
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="shop-card-body">
+        <span class="shop-card-brand">{{ p.brand.name if p.brand else '' }}</span>
+        <h3>{{ p.name }}</h3>
+        <small class="muted">{{ p.product_code }}</small>
+        <div class="shop-card-price">{{ price(p) }}</div>
+    </div>
+</a>
+{% endmacro %}
+
+{% macro status_badge(order) %}<span class="status status-{{ order.order_status|lower }}">{{ order.order_status|order_status }}</span>{% endmacro %}
+
+{% macro render_pagination(pg, endpoint) %}
+{% if pg.pages > 1 %}
+<nav class="pagination" aria-label="Phân trang">
+    {% if pg.has_prev %}<a href="{{ url_for(endpoint, page=pg.prev_num, **kwargs) }}">‹</a>{% endif %}
+    {% for n in pg.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if n %}{% if n == pg.page %}<span class="current">{{ n }}</span>{% else %}<a href="{{ url_for(endpoint, page=n, **kwargs) }}">{{ n }}</a>{% endif %}
+        {% else %}<span class="gap">…</span>{% endif %}
+    {% endfor %}
+    {% if pg.has_next %}<a href="{{ url_for(endpoint, page=pg.next_num, **kwargs) }}">›</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}

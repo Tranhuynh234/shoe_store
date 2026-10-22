@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% from 'partials/macros.html' import csrf %}
+{% block title %}Đặt hàng - TUẤN{% endblock %}
+{% block content %}
+<div class="container page-block">
+    <h1 class="section-title">ĐẶT HÀNG</h1>
+    <form method="post" class="cart-layout">
+        {{ csrf() }}
+        <div>
+            <section class="form-card">
+                <h3>Địa chỉ giao hàng</h3>
+                {% if current_user.addresses %}
+                {% for a in current_user.addresses %}
+                <label class="address-option">
+                    <input type="radio" name="address_id" value="{{ a.id }}" {{ 'checked' if a.is_default or (loop.first and not current_user.default_address) }} required>
+                    <span><strong>{{ a.recipient_name }}</strong> · {{ a.phone }}<br>{{ a.full_text }}</span>
+                </label>
+                {% endfor %}
+                {% else %}
+                <p class="muted">Bạn chưa có địa chỉ nhận hàng.</p>
+                {% endif %}
+                <a class="btn-light" href="{{ url_for('account.addresses', next=url_for('cart.checkout')) }}">+ Thêm địa chỉ mới</a>
+            </section>
+            <section class="form-card">
+                <h3>Phương thức thanh toán</h3>
+                <label class="address-option">
+                    <input type="radio" name="payment_method" value="COD" checked>
+                    <span>Thanh toán khi nhận hàng (COD)</span>
+                </label>
+                <p class="muted"><small>Thanh toán trực tuyến chưa được tích hợp.</small></p>
+            </section>
+            <section class="form-card">
+                <label>Ghi chú cho đơn hàng<textarea name="customer_note" rows="3" maxlength="500"></textarea></label>
+            </section>
+        </div>
+        <aside class="summary-card">
+            <h3>Đơn hàng của bạn</h3>
+            <ul class="mini-lines">
+                {% for l in summary.lines %}
+                <li><span>{{ l.product.name }} <small class="muted">({{ l.variant.label }}) × {{ l.item.quantity }}</small></span><span>{{ l.line_total|vnd }}</span></li>
+                {% endfor %}
+            </ul>
+            <dl>
+                <dt>Tạm tính</dt><dd>{{ summary.subtotal|vnd }}</dd>
+                <dt>Phí giao hàng</dt><dd>{{ summary.shipping_fee|vnd if summary.shipping_fee else 'Miễn phí' }}</dd>
+                <dt class="grand">Tổng cộng</dt><dd class="grand">{{ summary.total|vnd }}</dd>
+            </dl>
+            {% if summary.problems or not current_user.addresses %}
+            <p class="text-error">{% if summary.problems %}Giỏ hàng có sản phẩm không đủ hàng. <a href="{{ url_for('cart.view_cart') }}">Quay lại giỏ hàng</a>.{% else %}Vui lòng thêm địa chỉ giao hàng.{% endif %}</p>
+            {% else %}
+            <button type="submit" class="btn-dark block" data-loading-text="Đang đặt hàng...">Xác nhận đặt hàng</button>
+            {% endif %}
+            <p class="muted"><small>Giá và tổng tiền được tính lại bởi hệ thống khi đặt hàng.</small></p>
+        </aside>
+    </form>
+</div>
+{% endblock %}

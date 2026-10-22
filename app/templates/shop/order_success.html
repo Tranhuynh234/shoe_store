@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Đặt hàng thành công - TUẤN{% endblock %}
+{% block content %}
+<div class="container narrow center-text page-block">
+    <p class="success-mark">✓</p>
+    <h1 class="page-title">Đặt hàng thành công</h1>
+    <p>Mã đơn hàng của bạn: <strong>{{ order.order_code }}</strong></p>
+    <p class="muted">{{ order.payment_method_label }} · Tổng thanh toán {{ order.total_amount|vnd }}<br>
+        Giao đến: {{ order.ship_name }} – {{ order.ship_address }}</p>
+    <p>
+        {% if order.user_id %}<a class="btn-dark" href="{{ url_for('account.order_detail', order_code=order.order_code) }}">Xem đơn hàng</a>{% endif %}
+        <a class="btn-light" href="{{ url_for('main.products') }}">Tiếp tục mua sắm</a>
+    </p>
+</div>
+{% endblock %}
